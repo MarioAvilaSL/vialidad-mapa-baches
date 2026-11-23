@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { api } from "../api.js";
 import { claveServidor, esNativo, guardarServidor, normalizarUrl, urlServidor } from "../plataforma/servidor.js";
+import { borrarMosaicos, estadoMosaicos, fijarLimiteMosaicosMb, limiteMosaicosMb, LIMITES_MB } from "../plataforma/mosaicos.js";
 import { cargarAjustesServidor, guardarAjustesServidor, restablecerAjustesServidor, servidor } from "../ajustesServidor.js";
 
 const nativo = esNativo();
@@ -9,6 +10,16 @@ const conexion = reactive({ url: urlServidor(), clave: claveServidor() });
 const prueba = ref(null);              // resultado de «Probar conexión»
 const probando = ref(false);
 const conexionGuardada = ref(false);
+
+// Mapa guardado en el teléfono (solo en la app Android)
+const mapaGuardado = reactive({ n: 0, bytes: 0, limite: limiteMosaicosMb() });
+const mb = (b) => (b / 1048576).toFixed(b < 10485760 ? 1 : 0);
+async function refrescarMapa() { Object.assign(mapaGuardado, await estadoMosaicos()); }
+function cambiarLimite() { fijarLimiteMosaicosMb(mapaGuardado.limite); }
+async function vaciarMapa() {
+  if (confirm("¿Borrar el mapa guardado en este teléfono? Se volverá a guardar a medida que lo veas con conexión.")) { await borrarMosaicos(); await refrescarMapa(); }
+}
+if (nativo) refrescarMapa();
 
 async function probarConexion() {
   probando.value = true; prueba.value = null; conexionGuardada.value = false;
@@ -135,6 +146,23 @@ const fecha = (iso) => (iso ? new Date(iso).toLocaleString("es-EC", { timeZone: 
       </div>
       <p v-if="prueba" :class="prueba.ok ? 'ok' : 'error'" role="status">{{ prueba.texto }}</p>
       <p v-if="conexionGuardada" class="ok">Conexión guardada.</p>
+    </div>
+
+    <div v-if="nativo" class="tarjeta">
+      <h2 style="margin-top:0">Mapa guardado en el teléfono</h2>
+      <p class="suave">Los cuadros del mapa que ves con conexión se guardan para verlos después sin conexión. Solo se guarda lo que ya miraste:
+        para tener lista una zona, recórrela antes en el mapa con Wi-Fi o datos.</p>
+      <p>Guardado ahora: <b>{{ mb(mapaGuardado.bytes) }} MB</b> ({{ mapaGuardado.n }} cuadros).</p>
+      <label class="campo">Espacio máximo
+        <select v-model.number="mapaGuardado.limite" @change="cambiarLimite">
+          <option v-for="m in LIMITES_MB" :key="m" :value="m">{{ m === 0 ? "No guardar" : m + " MB" }}</option>
+        </select>
+        <small>Al llegar al máximo se borran primero los cuadros más antiguos. El cambio se aplica al abrir de nuevo cada mapa.</small>
+      </label>
+      <div class="barra" style="margin:0">
+        <button class="boton sec" @click="refrescarMapa">Actualizar</button>
+        <button class="boton sec" @click="vaciarMapa">Borrar mapa guardado</button>
+      </div>
     </div>
 
     <div class="tarjeta">

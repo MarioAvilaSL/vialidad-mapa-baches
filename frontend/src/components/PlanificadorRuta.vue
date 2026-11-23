@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import L from "leaflet";
+import { capaMosaicos } from "../plataforma/mosaicos.js";
 import "leaflet/dist/leaflet.css";
 import { api } from "../api.js";
 import { textoDistancia, textoTiempo } from "../conduccion/ruta.js";
@@ -33,7 +34,7 @@ let mapa = null, marcas = {}, capaRutas = null, capaPeligros = null;
 function crearMapa() {
   mapa = L.map("mapa-plan", { zoomControl: false, preferCanvas: true });
   L.control.zoom({ position: "bottomright" }).addTo(mapa);
-  L.tileLayer(TILES, { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>' }).addTo(mapa);
+  capaMosaicos(TILES, { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>' }).addTo(mapa);
   mapa.fitBounds(props.vista || [[-5.0, -81.1], [1.5, -75.2]]);
   capaRutas = L.layerGroup().addTo(mapa);
   capaPeligros = L.layerGroup().addTo(mapa);

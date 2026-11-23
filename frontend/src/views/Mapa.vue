@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import L from "leaflet";
+import { capaMosaicos } from "../plataforma/mosaicos.js";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -179,7 +180,7 @@ onMounted(async () => {
   mapa = L.map("mapa", { zoomControl: false, preferCanvas: true }).fitBounds(VISTA_INICIAL);
   L.control.zoom({ position: "bottomright" }).addTo(mapa);
   L.control.scale({ position: "bottomright", imperial: false }).addTo(mapa);
-  L.tileLayer(TILES, {
+  capaMosaicos(TILES, {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
   }).addTo(mapa);

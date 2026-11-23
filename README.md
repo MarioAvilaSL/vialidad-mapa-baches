@@ -329,6 +329,25 @@ ajustes compartidos exige esa clave (la lectura del mapa sigue abierta). Escríb
    con la pantalla apagada.
 3. Abre **Conducción**; se guardan datos en el teléfono. Sin Wi-Fi sigue avisando con la última copia.
 
+### Sin conexión: mapa y rutas guardados (Fase 7B)
+
+- **Mapa guardado.** En la app, los cuadros del mapa que ves con conexión se guardan en el teléfono y se reutilizan sin
+  conexión. Solo se guarda lo que ya miraste (OpenStreetMap no permite descargar zonas enteras de golpe): para dejar lista
+  una zona, recórrela antes en el mapa con Wi-Fi o datos. En **Ajustes → Mapa guardado en el teléfono** eliges el espacio
+  máximo (por defecto 100 MB; al llenarse se borran los cuadros más antiguos) y puedes borrarlo.
+- **Rutas guardadas.** Planifica una ruta con conexión; en Conducción aparece «Última ruta planificada» con un cuadro
+  para **Guardar con nombre** (por ejemplo «Casa → Trabajo»). Se guardan hasta 20 en el teléfono y se usan desde
+  «Rutas guardadas» sin conexión con el servidor.
+- **Baches y zonas.** Ya se guardaban al abrir Conducción con conexión.
+- **No se puede** calcular una ruta nueva sin conexión: eso lo hace GraphHopper en la PC.
+- **Severidad.** En Conducción (antes de iniciar) y en Alertas se elige qué baches se ven en el mapa y se avisan: todos,
+  media y alta, o solo alta. Las zonas críticas se muestran siempre.
+
+### Corrección si el teléfono no conecta («No se pudo conectar» aunque el servidor responda)
+Tu `backend\.env` debe incluir los orígenes de la app en `CORS_ORIGINS`:
+`CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://localhost,http://localhost,capacitor://localhost`
+y hay que reiniciar el backend.
+
 ### Qué conviene verificar en tu teléfono (no puedo probarlo desde aquí)
 - GPS con la app en primer plano y con la **pantalla apagada o en otra app**: el servicio nativo mantiene la app viva,
   pero cada fabricante gestiona la batería distinto (Xiaomi, Huawei y Samsung son los más estrictos).

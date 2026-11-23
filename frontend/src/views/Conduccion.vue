@@ -1,11 +1,13 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import L from "leaflet";
+import { capaMosaicos } from "../plataforma/mosaicos.js";
 import "leaflet/dist/leaflet.css";
 import { api } from "../api.js";
 import { iniciarGps, abrirAjustesUbicacion } from "../plataforma/gps.js";
 import { mantenerPantalla } from "../plataforma/voz.js";
 import { guardarLocal, leerLocal } from "../plataforma/datosLocales.js";
+import { borrarRuta, guardarRuta, listarRutas, MAXIMO as MAX_RUTAS } from "../conduccion/rutasGuardadas.js";
 import { hayServidor } from "../plataforma/servidor.js";
 import { ajustes } from "../conduccion/ajustes.js";
 import { Motor, lecturasSimuladas, rutaPorZona, textoAviso } from "../conduccion/motor.js";
@@ -39,6 +41,9 @@ const recalculando = ref(false);
 const origenDatos = ref(null);          // {tipo: 'servidor' | 'local', fecha} de dónde salen los baches cargados
 const rutaGuardada = ref(null);         // última ruta planificada (guardada en el dispositivo)
 const falloPermiso = ref(false);
+const rutas = ref([]);                  // rutas con nombre guardadas en el dispositivo
+const nombreRuta = ref("");
+const avisoRutas = ref("");
 
 let motor = null, motorRuta = null, recorrido = null, capaRuta = null, posActual = null, datos = null, detenerGps = null, tempSim = null, tempAviso = null, liberarPantalla = null;
 let mapa = null, capaPos = null, ultimaPos = null, capaBaches = null;
@@ -58,6 +63,7 @@ function instalarDatos(b, z) {
 async function cargar() {
   cargando.value = true; error.value = "";
   rutaGuardada.value = await leerLocal("ruta");
+  rutas.value = await listarRutas();
   try {
     if (!hayServidor()) throw Object.assign(new Error("sin servidor"), { sinConexion: true });
     const [b, z] = await Promise.all([api("/baches?limit=50000"), api("/zonas")]);      // zonas con los ajustes guardados
@@ -85,7 +91,7 @@ watch(() => ajustes.nivel_min, () => dibujarBaches());
 // ── mapa pequeño ────────────────────────────────────────────────────────────
 function montarMapa() {
   mapa = L.map("mapa-cond", { zoomControl: false, preferCanvas: true, attributionControl: true });
-  L.tileLayer(TILES, { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>' }).addTo(mapa);
+  capaMosaicos(TILES, { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>' }).addTo(mapa);
   // Leaflet necesita una vista inicial antes de añadir capas vectoriales
   const b = L.geoJSON(datos.baches).getBounds();
   mapa.fitBounds(b.isValid() ? b.pad(0.1) : [[-5.0, -81.1], [1.5, -75.2]]);
@@ -256,6 +262,17 @@ function usarRutaGuardada(simular) {
   const g = rutaGuardada.value;
   if (g) iniciar(simular, { resultado: g.resultado, indice: g.indice });
 }
+async function guardarConNombre() {
+  const g = rutaGuardada.value;
+  if (!g) return;
+  const lista = await guardarRuta({ nombre: nombreRuta.value, resultado: g.resultado, indice: g.indice });
+  if (lista) { rutas.value = lista; nombreRuta.value = ""; avisoRutas.value = `Ruta guardada (máximo ${MAX_RUTAS}; al pasarlo se borra la más antigua).`; }
+  else avisoRutas.value = "No se pudo guardar la ruta en este dispositivo.";
+}
+async function quitarRuta(r) {
+  if (confirm(`¿Eliminar la ruta «${r.nombre}»?`)) rutas.value = await borrarRuta(r.id);
+}
+function usarRuta(r, simular) { iniciar(simular, { resultado: r.resultado, indice: r.indice }); }
 const fechaCorta = (iso) => (iso ? new Date(iso).toLocaleString("es-EC", { timeZone: "America/Guayaquil", dateStyle: "short", timeStyle: "short" }) : "");
 
 // ── lo que se ve ────────────────────────────────────────────────────────────
@@ -331,6 +348,25 @@ onBeforeUnmount(() => { detener(); document.removeEventListener("visibilitychang
                 {{ rutaGuardada.resultado.rutas[rutaGuardada.indice].resumen.baches }} baches. Funciona sin conexión.</small></p>
             <button class="boton sec" @click="usarRutaGuardada(false)">▶ Conducir con esta ruta</button>
             <button class="boton sec" @click="usarRutaGuardada(true)">Simular</button>
+            <div class="guardar-nombre">
+              <input v-model="nombreRuta" maxlength="60" placeholder="Nombre, por ejemplo Casa → Trabajo" aria-label="Nombre de la ruta" />
+              <button class="boton sec" @click="guardarConNombre">Guardar con nombre</button>
+            </div>
+          </div>
+          <p v-if="avisoRutas" class="suave" style="margin:.4rem 0 0"><small>{{ avisoRutas }}</small></p>
+        </div>
+        <div v-if="rutas.length" class="tarjeta">
+          <h2 style="margin-top:0">Rutas guardadas</h2>
+          <p class="suave" style="margin-top:0"><small>Se usan sin conexión con el servidor.</small></p>
+          <div v-for="r in rutas" :key="r.id" class="ruta-item">
+            <p style="margin:0"><b>{{ r.nombre }}</b><br />
+              <small class="suave">{{ textoDistancia(r.resultado.rutas[r.indice].distancia_m) }} ·
+                {{ r.resultado.rutas[r.indice].resumen.zonas }} zonas · {{ r.resultado.rutas[r.indice].resumen.baches }} baches · {{ fechaCorta(r.guardada) }}</small></p>
+            <div class="barra" style="margin:.3rem 0 0">
+              <button class="boton sec" @click="usarRuta(r, false)">▶ Conducir</button>
+              <button class="boton sec" @click="usarRuta(r, true)">Simular</button>
+              <button class="boton sec" @click="quitarRuta(r)">Eliminar</button>
+            </div>
           </div>
         </div>
         <div class="tarjeta">
@@ -391,6 +427,10 @@ onBeforeUnmount(() => { detener(); document.removeEventListener("visibilitychang
 .boton.sec { background: var(--fondo); color: var(--texto); border: 1px solid var(--borde); }
 .ruta-guardada { margin-top: .8rem; padding-top: .6rem; border-top: 1px solid var(--borde); display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .ruta-guardada p { flex-basis: 100%; }
+.guardar-nombre { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .3rem; }
+.guardar-nombre input { flex: 1 1 12rem; min-width: 0; padding: .55rem .7rem; border: 1px solid var(--borde); border-radius: 10px; background: var(--fondo-tarjeta, #fff); color: inherit; font: inherit; }
+.ruta-item { padding: .6rem 0; border-top: 1px solid var(--borde); }
+.ruta-item:first-of-type { border-top: 0; }
 .aviso-local { background: var(--aviso-fondo); border-radius: 8px; padding: .5rem .7rem; margin: 0 0 .6rem; }
 .enlace-btn { background: none; border: 0; color: var(--marca-fuerte); font: inherit; text-decoration: underline; cursor: pointer; padding: 0; }
 
