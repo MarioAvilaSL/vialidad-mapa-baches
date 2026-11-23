@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vialidad Mapa</string>
+    <string name="title_activity_main">Vialidad Mapa</string>
+    <string name="package_name">ec.vialidad.mapa</string>
+    <string name="custom_url_scheme">ec.vialidad.mapa</string>
+</resources>

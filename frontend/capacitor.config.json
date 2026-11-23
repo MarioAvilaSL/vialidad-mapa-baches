@@ -1,0 +1,11 @@
+{
+  "appId": "ec.vialidad.mapa",
+  "appName": "Vialidad Mapa",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

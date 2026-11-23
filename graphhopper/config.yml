@@ -1,0 +1,35 @@
+# Configuración de GraphHopper para Vialidad Mapa (solo coche). Se usa con iniciar_graphhopper.bat.
+graphhopper:
+  # Mapa de OpenStreetMap de Ecuador (se descarga aparte, ver README.md de esta carpeta)
+  datareader.file: ecuador-latest.osm.pbf
+  # Aquí guarda el mapa ya procesado; la primera vez tarda, las siguientes arranca en segundos
+  graph.location: graph-cache
+
+  import.osm.ignored_highways: footway,construction,cycleway,path,steps
+
+  profiles:
+    - name: car
+      custom_model_files: [car.json]
+
+  # Sin «CH» para poder pedir rutas alternativas; «LM» mantiene las consultas rápidas
+  profiles_ch: []
+  profiles_lm:
+    - profile: car
+
+  graph.encoded_values: car_access, car_average_speed, road_class, roundabout, max_speed, road_environment
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: localhost      # solo accesible desde este equipo
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: localhost
+  request_log:
+    appenders: []
+
+logging:
+  appenders:
+    - type: console

@@ -1,0 +1,39 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secretos y datos locales (NUNCA se suben)
+.env
+**/.env
+backend/storage/*
+!backend/storage/.gitkeep
+
+# Node / frontend
+node_modules/
+frontend/dist/
+
+# Android (el proyecto se conserva; se ignoran compilaciones y rutas locales)
+frontend/android/local.properties
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
+frontend/android/app/src/main/assets/public/
+frontend/android/app/src/main/assets/capacitor.config.json
+frontend/android/app/src/main/assets/capacitor.plugins.json
+frontend/android/capacitor-cordova-android-plugins/
+*.apk
+*.aab
+
+# GraphHopper (descargas y datos generados)
+graphhopper/*.jar
+graphhopper/*.pbf
+graphhopper/graph-cache/
+graphhopper/*.log
+
+# Editor / sistema
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
